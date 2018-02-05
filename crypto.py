@@ -1,4 +1,5 @@
-# Crypto stuff
+# Crypto module
+# Grabs crypto-currency information from cmc API
 
 import json
 import requests
@@ -7,7 +8,7 @@ import threading
 
 def GetCrypto(Xfs, sock_id, in_nick, target, coin):
     """Get information about coin from API."""
-    with open("db\crypto_symbols.json", 'r') as f:
+    with open("db/crypto_symbols.json", 'r') as f:
         symbols = json.load(f)
     if (coin.upper() in symbols):
         """Check if coin can be found in the symbol json."""
@@ -39,23 +40,36 @@ def GetCrypto(Xfs, sock_id, in_nick, target, coin):
 
             p_btc = crypto_info['price_btc']
             rank = crypto_info['rank']
-            c_1h = float(crypto_info['percent_change_1h'])
-            c_24h = float(crypto_info['percent_change_24h'])
-            c_7d = float(crypto_info['percent_change_7d'])
+            c_1h = 0.0
+            c_24h = 0.0
+            c_7d = 0.0
+            if (crypto_info['percent_change_1h'] is not None):
+                c_1h = float(crypto_info['percent_change_1h'])
+            elif (crypto_info['percent_change_1h'] is None):
+                c_1h = "N/A"
+            if (crypto_info['percent_change_24h'] is not None):
+                c_24h = float(crypto_info['percent_change_24h'])
+            elif (crypto_info['percent_change_24h'] is None):
+                c_24h = "N/A"
+            if (crypto_info['percent_change_7d'] is not None):
+                c_7d = float(crypto_info['percent_change_7d'])
+            elif (crypto_info['percent_change_7d'] is None):
+                c_7d = "N/A"
+
             """Format the colour of the 7d/24h/1h data depending if it's positive or not.
             Red is for negative, green is for positive.
             """
-            if (c_1h >= 0):
+            if (c_1h != "N/A" and c_1h >= 0):
                 c_1h = "\003" + "3+" + str(c_1h) + "%" + "\003"
-            elif (c_1h < 0):
+            elif (c_1h != "N/A" and c_1h < 0):
                 c_1h = "\003" + "4" + str(c_1h) + "%" + "\003"
-            if (c_24h >= 0):
+            if (c_24h != "N/A" and c_24h >= 0):
                 c_24h = "\003" + "3+" + str(c_24h) + "%" + "\003"
-            elif (c_24h < 0):
+            elif (c_24h != "N/A" and c_24h < 0):
                 c_24h = "\003" + "4" + str(c_24h) + "%" + "\003"
-            if (c_7d >= 0):
+            if (c_7d != "N/A" and c_7d >= 0):
                 c_7d = "\003" + "3+" + str(c_7d) + "%" + "\003"
-            elif (c_7d < 0):
+            elif (c_7d != "N/A" and c_7d < 0):
                 c_7d = "\003" + "4" + str(c_7d) + "%" + "\003"
             """Customize symbols colours."""
             if (symbol == "BTC"):
@@ -103,42 +117,40 @@ def GetCrypto(Xfs, sock_id, in_nick, target, coin):
         Xfs.Notice(sock_id, in_nick, raw)
 
 
+def CryptoThread(*args):
+    """Starts a new thread for each GetCrypto() call."""
+    crypto_thread = threading.Thread(target=GetCrypto, args=(args))
+    crypto_thread.start()
+
 def TriggerCrypto(func):
-    """Add triggers to module."""
+    """Add triggers for module."""
     def wrapper_func(Xfs, sock_id, Raw):
         func(Xfs, sock_id, Raw)
         line_split = Raw.line.split(" ")
         if (Raw.cmd == ".cmc" and len(line_split) == 2):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd + " " + line_split[1])
-            crypto_thread = threading.Thread(target = GetCrypto, args = (Xfs, sock_id, Raw.in_nick, Raw.target, line_split[1]))
-            crypto_thread.start()
+            CryptoThread(Xfs, sock_id, Raw.in_nick, Raw.target, line_split[1])
         elif (Raw.cmd == ".cmc" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
             Xfs.Notice(sock_id, Raw.in_nick, "Eroare! Sintaxa corecta este: .cmc <moneda> | Exemplu: .cmc xrp")
         elif (Raw.cmd == ".btc" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
-            crypto_thread = threading.Thread(target = GetCrypto, args = (Xfs, sock_id, Raw.in_nick, Raw.target, "btc"))
-            crypto_thread.start()
+            CryptoThread(Xfs, sock_id, Raw.in_nick, Raw.target, "btc")
         elif (Raw.cmd == ".bch" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
-            crypto_thread = threading.Thread(target = GetCrypto, args = (Xfs, sock_id, Raw.in_nick, Raw.target, "bch"))
-            crypto_thread.start()
+            CryptoThread(Xfs, sock_id, Raw.in_nick, Raw.target, "bch")
         elif (Raw.cmd == ".eth" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
-            crypto_thread = threading.Thread(target = GetCrypto, args = (Xfs, sock_id, Raw.in_nick, Raw.target, "eth"))
-            crypto_thread.start()
+            CryptoThread(Xfs, sock_id, Raw.in_nick, Raw.target, "eth")
         elif (Raw.cmd == ".xmr" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
-            crypto_thread = threading.Thread(target = GetCrypto, args = (Xfs, sock_id, Raw.in_nick, Raw.target, "xmr"))
-            crypto_thread.start()
+            CryptoThread(Xfs, sock_id, Raw.in_nick, Raw.target, "xmr")
         elif (Raw.cmd == ".ltc" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
-            crypto_thread = threading.Thread(target = GetCrypto, args = (Xfs, sock_id, Raw.in_nick, Raw.target, "ltc"))
-            crypto_thread.start()
+            CryptoThread(Xfs, sock_id, Raw.in_nick, Raw.target, "ltc")
         elif (Raw.cmd == ".crypto" and Raw.cmd == Raw.line):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
             Xfs.Msg(sock_id, Raw.target, "Comenzi disponibile pentru crypto-currency: "
                     + ".btc | .bch | .eth | .xmr | .ltc | Pt. alte monede folositi: .cmc <moneda> |"
                     + " Exemplu: .cmc xrp")
     return wrapper_func
-
