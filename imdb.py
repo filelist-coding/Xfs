@@ -1,4 +1,5 @@
-# IMDB stuff
+# IMDB module
+# Grabs info from imdb.com using omdbapi.com API
 
 import json
 import requests
@@ -7,10 +8,16 @@ import threading
 import re
 
 
-def GetIMDB(Xfs, sock_id, in_nick, target, title, year = ""):
+def GetIMDB(Xfs, sock_id, in_nick, target, title, year = "", request_type = "t"):
     """ Get info about movie and tv-series from API."""
 
-    url = ("http://www.omdbapi.com/?apikey=API-KEY&t=" + title + "&y=" + year)
+    url = ""
+    """Send API request by title or id."""
+    if (request_type == "t"):
+        url = ("http://www.omdbapi.com/?apikey=API-KEY&t=" + title + "&y=" + year)
+    elif (request_type == "i"):
+        url = ("http://www.omdbapi.com/?apikey=API-KEY&i=" + title + "&y=" + year)
+        
     headers = {"Content-Type": "application/json"}
     response = requests.get(url, headers=headers)
 
@@ -36,7 +43,7 @@ def GetIMDB(Xfs, sock_id, in_nick, target, title, year = ""):
 
 
 def TriggerGetIMDB(func):
-    """ Add triggers to module."""
+    """Wrapper for .imdb trigger."""
     def wrapper_func(Xfs, sock_id, Raw):
         func(Xfs, sock_id, Raw)
         line_split = Raw.line.split(" ")
@@ -55,43 +62,19 @@ def TriggerGetIMDB(func):
                     title_r = p_title.search(Raw.line)
                     title = title_r.group(1)
                     imdb_thread = threading.Thread(target=GetIMDB,
-                                                     args=(Xfs, sock_id, Raw.in_nick, Raw.target, title, year))
+                                                   args=(Xfs, sock_id, Raw.in_nick, Raw.target, title, year),
+                                                   kwargs={"request_type": "t"})
                     imdb_thread.start()
                 else:
                     imdb_thread = threading.Thread(target=GetIMDB,
-                                                     args=(Xfs, sock_id, Raw.in_nick, Raw.target, Raw.line[6:]))
+                                                   args=(Xfs, sock_id, Raw.in_nick, Raw.target, Raw.line[6:]),
+                                                   kwargs={"request_type": "t"})
                     imdb_thread.start()
     return wrapper_func
 
 
-
-def GetIMDBFromLink(Xfs, sock_id, target, movie_id):
-    """ Get info about movie and tv-series from API."""
-
-    url = ("http://www.omdbapi.com/?apikey=API-KEY&i=" + movie_id)
-    headers = {"Content-Type": "application/json"}
-    response = requests.get(url, headers=headers)
-
-    if (response.status_code == 200):
-        imdb_info = json.loads(response.content.decode("utf-8"))
-        if (imdb_info["Response"] == "True"):
-            mv_title = imdb_info["Title"]
-            mv_release = imdb_info["Released"]
-            mv_runtime = imdb_info["Runtime"]
-            mv_genre = imdb_info["Genre"]
-            mv_plot = imdb_info["Plot"]
-            mv_imdb_r = imdb_info["imdbRating"]
-            mv_imdb_l = "http://www.imdb.com/title/" + imdb_info["imdbID"] + "/"
-            raw = ("\00303" + mv_title + "\003: " + mv_plot + " |\00304 " + mv_imdb_r + "\003 IMDB | " + mv_release
-                   + " | " + mv_runtime + " | " + mv_genre + " | " + mv_imdb_l)
-            Xfs.Msg(sock_id, target, raw)
-    else:
-        print("Error! non-200 response from API.")
-
-
-
 def GrabIMDBLink(func):
-    """Add triggers to module."""
+    """Wrapper for triggering GetIMDB() from link pasted in a channel."""
     def wrapper_func(Xfs, sock_id, Raw):
         func(Xfs, sock_id, Raw)
         p_is_imdb = re.compile(".*www\.imdb\.com\/title\/tt\d+\/.*")
@@ -100,7 +83,8 @@ def GrabIMDBLink(func):
             if (p_is_imdb.match(Raw.line) is not None):
                 grab_id_r = p_grab_id.search(Raw.line)
                 movie_id = grab_id_r.group(1)
-                imdb_thread = threading.Thread(target=GetIMDBFromLink,
-                                               args=(Xfs, sock_id, Raw.target, movie_id))
+                imdb_thread = threading.Thread(target=GetIMDB,
+                                               args=(Xfs, sock_id, Raw.in_nick, Raw.target, movie_id),
+                                               kwargs={"request_type": "i"})
                 imdb_thread.start()
     return wrapper_func
