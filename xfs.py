@@ -77,6 +77,11 @@ class Xfs:
         raw = "PART " + target + " " + msg
         self.Send(sock_id, raw)
 
+    def Kick(self, sock_id, target, chan, msg = "Out!"):
+        """Sends KICK raw to socket."""
+        raw = "KICK {} {} :{}".format(chan, target, msg)
+        self.Send(sock_id, raw)
+
     def Quit(self, sock_id, msg = "Leaving server!"):
         """Sends QUIT raw to socket."""
         raw = "QUIT " + msg

@@ -187,9 +187,17 @@ def CmdHandler(Xfs, sock_id, Raw):
             cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
             if (split_line_size == 1):
                 Xfs.RestartBot(sock_id)
-            
-        
-        
-        
-    
-    
+        elif (Raw.cmd == ".kick"):
+            """Kick command."""
+            cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
+            if (split_line_size == 1):
+                Xfs.Notice(sock_id, Raw.in_nick, "Error. Syntax is .kick <nick> <reason>*")
+            elif (split_line_size == 2):
+                Xfs.Kick(sock_id, split_line[1], Raw.target)
+            elif (split_line_size >= 3):
+                Xfs.Kick(sock_id, split_line[1], Raw.target, " ".join(split_line[2:]))
+        elif (Raw.cmd == ".sendraw"):
+            """Sends raw to server."""
+            cmd_logger.AddLog(Raw.in_nick, Raw.target, Raw.cmd)
+            if (split_line_size != 1):
+                Xfs.Send(sock_id, " ".join(split_line[1:]))
