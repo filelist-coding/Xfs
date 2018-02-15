@@ -120,12 +120,8 @@ def AlphaRawHandler(Xfs, sock_id, Raw):
                 
     elif (Raw.raw_type == "NOTICE"):
         """NOTICE section."""
-        print(Raw.in_nick)
-        print(Raw.in_host)
         if (Raw.in_nick == "NickServ"):
-            print("aici")
             if ("registered" in Raw.line and "protected" in Raw.line):
-                print("aici2")
                 """Auth to NickServ."""
                 Xfs.Identify(sock_id)
             elif ("password" in Raw.line and "email" in Raw.line):
